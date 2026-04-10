@@ -43,6 +43,14 @@
                     </a>
                 </div>
 
+                <div class="pt-4">
+                    <p class="text-xs font-semibold text-slate-400 px-4 mb-3">NEWSLETTER</p>
+                    <a href="{{ route('admin.newsletter.compose') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors {{ request()->routeIs('admin.newsletter.*') ? 'bg-blue-600' : '' }}">
+                        <span class="material-icons">send</span>
+                        <span>Compose & Send</span>
+                    </a>
+                </div>
+
                 <div class="pt-4 border-t border-slate-800">
                     <a href="{{ route('admin.profile.edit') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors {{ request()->routeIs('admin.profile.*') ? 'bg-blue-600' : '' }}">
                         <span class="material-icons">person</span>
@@ -50,17 +58,9 @@
                     </a>
                     
                     <a href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors">
-                        <span class="material-icons">home</span>
+                        <span class="material-icons">logout</span>
                         <span>View Site</span>
                     </a>
-
-                    <form method="POST" action="{{ route('admin.logout') }}">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors text-left">
-                            <span class="material-icons">logout</span>
-                            <span>Logout</span>
-                        </button>
-                    </form>
                 </div>
             </nav>
         </aside>
