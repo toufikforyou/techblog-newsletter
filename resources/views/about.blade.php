@@ -1,8 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'About TechNews - Our Mission to Inform the Future')
-@section('description', 'Meet the team of engineers and editors behind TechNews. We curate critical tech news to help
-you stay ahead in your career.')
+@section('description', 'Meet the team of engineers and editors behind TechNews. We curate critical tech news to help you stay ahead in your career.')
 
 @section('content')
 <!-- Hero Section -->

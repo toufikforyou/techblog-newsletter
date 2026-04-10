@@ -56,6 +56,14 @@
                     </p>
                 </div>
 
+                <!-- Cloudflare Turnstile -->
+                <div class="mb-6">
+                    <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}" data-theme="light"></div>
+                    @error('cf-turnstile-response')
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                     <span>Send OTP</span>
                     <span class="material-icons">send</span>
@@ -76,3 +84,4 @@
     </div>
 </body>
 </html>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

@@ -25,6 +25,11 @@
                         />
                     </div>
 
+                    <!-- Cloudflare Turnstile -->
+                    <div>
+                        <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}" data-theme="light"></div>
+                    </div>
+
                     <button
                         type="submit"
                         id="submitBtn"
@@ -45,66 +50,17 @@
         </div>
     </div>
 
+@push('subscription-scripts')
     <script>
-        const form = document.getElementById('subscribeForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const messageBox = document.getElementById('messageBox');
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const csrfToken = document.querySelector('input[name="_token"]').value;
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Subscribing...';
-            messageBox.classList.add('hidden');
-
-            try {
-                const response = await fetch('{{ route("subscribe.store") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                    },
-                    body: JSON.stringify({ email }),
-                });
-
-                const data = await response.json();
-
-                messageBox.classList.remove('hidden');
-                messageBox.textContent = data.message;
-
-                if (data.success) {
-                    messageBox.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
-                    messageBox.classList.remove('bg-amber-50', 'text-amber-700', 'border-amber-200', 'bg-red-50', 'text-red-700', 'border-red-200');
-                    form.reset();
-                    setTimeout(() => {
-                        submitBtn.textContent = 'Subscribe Now';
-                    }, 2000);
-                    setTimeout(() => {
-                        messageBox.classList.add('hidden');
-                    }, 5000);
-                } else {
-                    messageBox.classList.add('bg-amber-50', 'text-amber-700', 'border', 'border-amber-200');
-                    messageBox.classList.remove('bg-green-50', 'text-green-700', 'border-green-200', 'bg-red-50', 'text-red-700', 'border-red-200');
-                    submitBtn.textContent = 'Subscribe Now';
-                    setTimeout(() => {
-                        messageBox.classList.add('hidden');
-                    }, 5000);
-                }
-            } catch (error) {
-                messageBox.classList.remove('hidden');
-                messageBox.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
-                messageBox.classList.remove('bg-green-50', 'text-green-700', 'border-green-200', 'bg-amber-50', 'text-amber-700', 'border-amber-200');
-                messageBox.textContent = 'An error occurred. Please try again.';
-                submitBtn.textContent = 'Subscribe Now';
-                setTimeout(() => {
-                    messageBox.classList.add('hidden');
-                }, 5000);
-            } finally {
-                submitBtn.disabled = false;
-            }
+        // Initialize subscription form
+        initSubscriptionForm({
+            formId: 'subscribeForm',
+            buttonId: 'submitBtn',
+            messageId: 'messageBox',
+            apiUrl: '{{ route("subscribe.store") }}',
+            loadingText: 'Subscribing...',
+            theme: 'light'
         });
     </script>
+@endpush
 @endsection

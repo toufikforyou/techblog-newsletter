@@ -49,7 +49,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 Route::redirect('/admin', '/dashboard');
 
 // Authenticated admin dashboard and resources now live under /dashboard
-Route::middleware('admin.auth')->prefix('dashboard')->name('admin.')->group(function () {
+Route::middleware(['admin.auth', \App\Http\Middleware\ValidateAdminSession::class])->prefix('dashboard')->name('admin.')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
 
     Route::get('/', [AdminController::class, 'index'])->name('dashboard');

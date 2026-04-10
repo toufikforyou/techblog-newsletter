@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class AdminAuthController extends Controller
 {
@@ -22,9 +21,31 @@ class AdminAuthController extends Controller
     // Handle registration - Step 1: Send OTP
     public function register(Request $request)
     {
-        $request->validate([
+        $rules = [
             'email' => 'required|email',
+        ];
+
+        // Only require Turnstile in production
+        if (app()->environment('production')) {
+            $rules['cf-turnstile-response'] = 'required';
+        }
+
+        $request->validate($rules, [
+            'cf-turnstile-response.required' => 'Please complete the security verification.',
         ]);
+
+        // Verify Turnstile token (skip in local/development environment)
+        if (app()->environment('production')) {
+            $turnstileResponse = \Illuminate\Support\Facades\Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                'secret' => config('services.turnstile.secret_key'),
+                'response' => $request->input('cf-turnstile-response'),
+                'remoteip' => $request->ip(),
+            ]);
+
+            if (!$turnstileResponse->successful() || !$turnstileResponse->json('success')) {
+                return back()->withErrors(['cf-turnstile-response' => 'Security verification failed. Please try again.'])->withInput();
+            }
+        }
 
         $allowedDomains = array_filter(array_map('trim', explode(',', strtolower(env('ADMIN_ALLOWED_DOMAINS', 'techappupdate.com')))));
         $emailDomain = strtolower(substr(strrchr($request->email, '@'), 1));
@@ -79,6 +100,9 @@ class AdminAuthController extends Controller
             return back()->withErrors(['otp' => 'Invalid or expired OTP.']);
         }
 
+        // Generate new token for this session
+        $newToken = \Illuminate\Support\Str::random(60);
+        
         // Update admin details and verify email
         $admin->update([
             'name' => $request->name,
@@ -87,10 +111,20 @@ class AdminAuthController extends Controller
             'email_verified_at' => now(),
             'otp' => null,
             'otp_expires_at' => null,
+            'remember_token' => $newToken,
         ]);
 
         // Log the admin in
         Auth::guard('admin')->login($admin);
+        
+        // Regenerate session for security
+        $request->session()->regenerate();
+        
+        // Store the token in session for validation
+        $request->session()->put('admin_session_token', $newToken);
+        
+        // Force save the session to ensure token is persisted before redirect
+        $request->session()->save();
 
         return redirect()->route('admin.dashboard')->with('success', 'Registration successful! Welcome to the admin panel.');
     }
@@ -104,10 +138,32 @@ class AdminAuthController extends Controller
     // Handle login
     public function login(Request $request)
     {
-        $request->validate([
+        $rules = [
             'email' => 'required|email',
             'password' => 'required',
+        ];
+
+        // Only require Turnstile in production
+        if (app()->environment('production')) {
+            $rules['cf-turnstile-response'] = 'required';
+        }
+
+        $request->validate($rules, [
+            'cf-turnstile-response.required' => 'Please complete the security verification.',
         ]);
+
+        // Verify Turnstile token
+        $turnstileResponse = \Illuminate\Support\Facades\Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+            'secret' => config('services.turnstile.secret_key'),
+            'response' => $request->input('cf-turnstile-response'),
+            'remoteip' => $request->ip(),
+        ]);
+
+        if (app()->environment('production')) {
+            if (!$turnstileResponse->successful() || !$turnstileResponse->json('success')) {
+                return back()->withErrors(['cf-turnstile-response' => 'Security verification failed. Please try again.'])->withInput();
+            }
+        }
 
         $admin = Admin::where('email', $request->email)->first();
 
@@ -116,7 +172,23 @@ class AdminAuthController extends Controller
         }
 
         if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->filled('remember'))) {
+            // Regenerate session first to prevent fixation attacks
             $request->session()->regenerate();
+            
+            // Generate new token for this session
+            $newToken = \Illuminate\Support\Str::random(60);
+            
+            // Get fresh admin from database and update token
+            $authenticatedAdmin = Admin::find(Auth::guard('admin')->id());
+            $authenticatedAdmin->remember_token = $newToken;
+            $authenticatedAdmin->save();
+            
+            // Store the token in current session for validation AFTER regeneration
+            $request->session()->put('admin_session_token', $newToken);
+            
+            // Force save the session to ensure token is persisted before redirect
+            $request->session()->save();
+            
             return redirect()->intended(route('admin.dashboard'));
         }
 

@@ -32,6 +32,8 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        
+        @stack('scripts')
     </head>
     <body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-indigo-500 selection:text-white">
         <div class="min-h-screen flex flex-col">
@@ -44,5 +46,24 @@
             <!-- Footer -->
             @include('partials.footer')
         </div>
+        
+        <!-- Cloudflare Turnstile Script -->
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+        
+        <!-- Subscription Handler Script -->
+        <script src="{{ asset('js/subscription-handler.js') }}"></script>
+        <script>
+            // Initialize footer subscription form (available on all pages)
+            initSubscriptionForm({
+                formId: 'footerSubForm',
+                buttonId: 'footerSubBtn',
+                messageId: 'footerSubMsg',
+                apiUrl: '{{ route("subscribe.store") }}',
+                loadingText: 'Subscribing...',
+                theme: 'dark'
+            });
+        </script>
+        
+        @stack('subscription-scripts')
     </body>
 </html>
