@@ -15,7 +15,7 @@
                     d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z"
                 />
             </svg>
-            <span>TechBlog</span>
+            <span>TechNews</span>
         </a>
 
         <button id="toggle" class="md:hidden text-slate-600 hover:text-blue-600 focus:outline-none">
