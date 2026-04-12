@@ -3,16 +3,33 @@
 namespace App\Http\Controllers;
 
 use App\Models\Blog;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class BlogPageController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $blogs = Blog::where('status', 'published')
-            ->orderBy('published_at', 'desc')
-            ->paginate(9);
+        $categories = Blog::where('status', 'published')
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
 
-        return view('blog', compact('blogs'));
+        $selectedCategory = $request->query('category');
+
+        $blogsQuery = Blog::where('status', 'published')
+            ->whereNotNull('published_at')
+            ->orderBy('published_at', 'desc');
+
+        if (!empty($selectedCategory)) {
+            $blogsQuery->where('category', $selectedCategory);
+        }
+
+        $blogs = $blogsQuery
+            ->paginate(9)
+            ->withQueryString();
+
+        return view('blog', compact('blogs', 'categories', 'selectedCategory'));
     }
 }

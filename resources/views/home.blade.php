@@ -339,7 +339,7 @@ architecture, and emerging tech trends.')
                     <div class="flex items-center gap-2 text-sm text-slate-500 mb-3">
                         <span>{{ $blog->published_at?->format('M d, Y') }}</span>
                         <span>•</span>
-                        <span>{{ $blog->read_time ?? '—' }} min read</span>
+                        <span>{{ trim(preg_replace('/\s*min(?:ute)?\s*read/i', '', (string) ($blog->read_time ?? ''))) ?: '—' }} minute read</span>
                     </div>
                     <h3
                         class="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">

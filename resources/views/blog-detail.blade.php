@@ -52,7 +52,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5-13C6.228 2 2 6.228 2 12s4.228 10 10 10 10-4.228 10-10S17.772 2 12 2z" />
                             </svg>
-                            {{ $blog->read_time }} min read
+                            {{ trim(preg_replace('/\s*min(?:ute)?\s*read/i', '', (string) ($blog->read_time ?? ''))) ?: '—' }} minute read
                         </span>
                     </div>
                 </div>
@@ -118,7 +118,7 @@
                                 <div class="flex items-center gap-3 text-xs text-slate-500 mb-3">
                                     <span>{{ $related->published_at->format('M d, Y') }}</span>
                                     <span>•</span>
-                                    <span>{{ $related->read_time }} min read</span>
+                                    <span>{{ trim(preg_replace('/\s*min(?:ute)?\s*read/i', '', (string) ($related->read_time ?? ''))) ?: '—' }} minute read</span>
                                 </div>
 
                                 <h3 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-2">

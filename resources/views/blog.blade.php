@@ -50,30 +50,42 @@
 
                 <!-- Category Filter -->
                 <div class="hidden md:flex items-center gap-2">
-                    <button
-                        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                    <a
+                        href="{{ route('blog.index') }}"
+                        class="px-4 py-2 text-sm font-medium rounded-lg transition-colors {{ empty($selectedCategory) ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white text-slate-600 hover:bg-slate-100' }}"
                     >
                         All
-                    </button>
-                    @php
-                        $categories = \App\Models\Blog::where('status', 'published')->distinct()->pluck('category')->filter()->unique();
-                    @endphp
+                    </a>
                     @foreach($categories as $cat)
-                        <button
-                            class="px-4 py-2 bg-white text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
+                        <a
+                            href="{{ route('blog.index', ['category' => $cat]) }}"
+                            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors {{ $selectedCategory === $cat ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white text-slate-600 hover:bg-slate-100' }}"
                         >
                             {{ $cat }}
-                        </button>
+                        </a>
                     @endforeach
                 </div>
+            </div>
+
+            <div class="md:hidden mb-8">
+                <label for="category-filter" class="sr-only">Filter by category</label>
+                <select
+                    id="category-filter"
+                    class="w-full rounded-lg border-slate-300 text-slate-700 focus:border-indigo-500 focus:ring-indigo-500"
+                    onchange="window.location.href = this.value"
+                >
+                    <option value="{{ route('blog.index') }}" {{ empty($selectedCategory) ? 'selected' : '' }}>All Categories</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ route('blog.index', ['category' => $cat]) }}" {{ $selectedCategory === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <!-- Articles Grid -->
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 @forelse($blogs as $blog)
                     <!-- Article Card -->
-                    <a
-                        href="{{ route('blog.show', $blog->slug) }}"
+                    <article
                         class="group bg-white rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-200 transition-all duration-300 hover:shadow-lg flex flex-col"
                     >
                         <div class="relative h-48 bg-gradient-to-br from-violet-500 to-purple-600 overflow-hidden">
@@ -98,11 +110,12 @@
                                 </div>
                             @endif
                             <div class="absolute top-4 left-4">
-                                <span
+                                <a
+                                    href="{{ route('blog.index', ['category' => $blog->category]) }}"
                                     class="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-violet-600 text-xs font-semibold rounded-full"
                                 >
                                     {{ $blog->category }}
-                                </span>
+                                </a>
                             </div>
                         </div>
 
@@ -110,14 +123,16 @@
                             <div class="flex items-center gap-3 text-xs text-slate-500 mb-3">
                                 <span>{{ $blog->published_at->format('M d, Y') }}</span>
                                 <span>•</span>
-                                <span>{{ $blog->read_time }} min read</span>
+                                <span>{{ trim(preg_replace('/\s*min(?:ute)?\s*read/i', '', (string) ($blog->read_time ?? ''))) ?: '—' }} minute read</span>
                             </div>
 
+                            <a href="{{ route('blog.show', $blog->slug) }}">
                             <h3
                                 class="text-xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2"
                             >
                                 {{ $blog->title }}
                             </h3>
+                            </a>
 
                             <p class="text-slate-600 text-sm leading-relaxed mb-4 flex-grow line-clamp-3">
                                 {{ $blog->excerpt }}
@@ -133,10 +148,10 @@
                                     </div>
                                 </div>
 
-                                <span class="text-indigo-600 font-medium text-sm group-hover:text-indigo-700">Read →</span>
+                                <a href="{{ route('blog.show', $blog->slug) }}" class="text-indigo-600 font-medium text-sm group-hover:text-indigo-700">Read →</a>
                             </div>
                         </div>
-                    </a>
+                    </article>
                 @empty
                     <div class="col-span-full py-16 text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 text-slate-300 mx-auto mb-4">
