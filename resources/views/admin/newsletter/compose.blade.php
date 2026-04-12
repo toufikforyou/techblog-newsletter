@@ -194,7 +194,7 @@
                             name="recipient_type"
                             id="active_only"
                             value="active"
-                            checked
+                            {{ old('recipient_type', 'active') === 'active' ? 'checked' : '' }}
                             class="w-4 h-4 text-blue-600 focus:ring-blue-500"
                         />
                         <label for="active_only" class="inline text-sm text-slate-700 ml-2">
@@ -207,14 +207,43 @@
                             name="recipient_type"
                             id="all_subscribers"
                             value="all"
+                            {{ old('recipient_type') === 'all' ? 'checked' : '' }}
                             class="w-4 h-4 text-blue-600 focus:ring-blue-500"
                         />
                         <label for="all_subscribers" class="inline text-sm text-slate-700 ml-2">
                             All Subscribers ({{ $totalSubscribersCount }})
                         </label>
                     </div>
+                    <div>
+                        <input
+                            type="radio"
+                            name="recipient_type"
+                            id="test_recipients"
+                            value="test"
+                            {{ old('recipient_type') === 'test' ? 'checked' : '' }}
+                            class="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label for="test_recipients" class="inline text-sm text-slate-700 ml-2">
+                            Test Recipients (manual email list)
+                        </label>
+                    </div>
                 </div>
                 @error('recipient_type')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div id="test-emails-wrapper" class="{{ old('recipient_type') === 'test' ? '' : 'hidden' }}">
+                <label for="test_emails" class="block text-sm font-semibold text-slate-900 mb-2">Test Recipient Emails</label>
+                <textarea
+                    name="test_emails"
+                    id="test_emails"
+                    rows="3"
+                    placeholder="test@example.com, teammate@example.com"
+                    class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >{{ old('test_emails') }}</textarea>
+                <p class="text-slate-500 text-xs mt-1">Use commas or line breaks to send the same newsletter as a test email to multiple addresses.</p>
+                @error('test_emails')
                     <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
@@ -225,7 +254,7 @@
                     class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
                 >
                     <span class="material-icons text-sm">send</span>
-                    Send Newsletter
+                    Send Email
                 </button>
                 <a href="{{ route('admin.dashboard') }}" class="px-6 py-2 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-300 transition-colors font-medium">
                     Cancel
@@ -270,11 +299,13 @@
             }
         }
 
-        // Set initial content from old() helper if available
-        @if(old('body'))
-            quill.root.innerHTML = `{{ old('body') }}`;
+        // Set initial content from old() helper if available.
+        // Use JSON encoding so HTML is restored exactly (not entity-escaped).
+        const oldBody = @json(old('body'));
+        if (oldBody) {
+            quill.root.innerHTML = oldBody;
             adjustEditorHeight();
-        @endif
+        }
 
         // Adjust height on text change
         quill.on('text-change', function() {
@@ -287,6 +318,22 @@
         const previewBody = document.getElementById('preview-body');
         const form = document.querySelector('form');
         const bodyTextarea = document.querySelector('#body');
+        const recipientTypeInputs = document.querySelectorAll('input[name="recipient_type"]');
+        const testEmailsWrapper = document.getElementById('test-emails-wrapper');
+        const testEmailsInput = document.getElementById('test_emails');
+
+        function toggleTestEmailsField() {
+            const selected = document.querySelector('input[name="recipient_type"]:checked')?.value;
+            const showTestEmails = selected === 'test';
+
+            testEmailsWrapper.classList.toggle('hidden', !showTestEmails);
+
+            if (showTestEmails) {
+                testEmailsInput.setAttribute('required', 'required');
+            } else {
+                testEmailsInput.removeAttribute('required');
+            }
+        }
 
         // Update preview function
         function updatePreview() {
@@ -309,6 +356,10 @@
         quill.on('text-change', function() {
             updatePreview();
             syncBodyField();
+        });
+
+        recipientTypeInputs.forEach((input) => {
+            input.addEventListener('change', toggleTestEmailsField);
         });
 
         // Image upload handler
@@ -355,6 +406,7 @@
         // Initial preview update after a small delay to ensure Quill is ready
         setTimeout(function() {
             updatePreview();
+            toggleTestEmailsField();
         }, 100);
     </script>
 @endsection

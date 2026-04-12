@@ -102,7 +102,7 @@ class AdminSubscriberManagementFeatureTest extends TestCase
             'recipient_type' => 'active',
         ]);
 
-        $response->assertRedirect(route('admin.subscribers.index'));
+        $response->assertRedirect(route('admin.newsletter.compose'));
 
         Mail::assertQueued(NewsletterEmail::class, 1);
         Mail::assertQueued(NewsletterEmail::class, function (NewsletterEmail $mail) {
@@ -110,6 +110,31 @@ class AdminSubscriberManagementFeatureTest extends TestCase
         });
         Mail::assertNotQueued(NewsletterEmail::class, function (NewsletterEmail $mail) {
             return $mail->hasTo('bounced@subscriber.com');
+        });
+    }
+
+    public function test_admin_can_send_test_newsletter_to_multiple_recipients_without_resetting_form(): void
+    {
+        $this->signInAsAdmin();
+        Mail::fake();
+
+        $response = $this->post(route('admin.newsletter.test'), [
+            'subject' => 'Test Newsletter',
+            'body' => 'This is a test newsletter body.',
+            'test_emails' => 'test-one@example.com, test-two@example.com',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasInput('subject', 'Test Newsletter');
+        $response->assertSessionHasInput('body', 'This is a test newsletter body.');
+        $response->assertSessionHasInput('recipient_type', 'test');
+
+        Mail::assertSent(NewsletterEmail::class, 2);
+        Mail::assertSent(NewsletterEmail::class, function (NewsletterEmail $mail) {
+            return $mail->hasTo('test-one@example.com');
+        });
+        Mail::assertSent(NewsletterEmail::class, function (NewsletterEmail $mail) {
+            return $mail->hasTo('test-two@example.com');
         });
     }
 

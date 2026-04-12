@@ -62,6 +62,7 @@ Route::middleware(['admin.auth', \App\Http\Middleware\ValidateAdminSession::clas
     Route::resource('subscribers', SubscriberController::class);
     Route::get('newsletter/compose', [SubscriberController::class, 'composeNewsletter'])->name('newsletter.compose');
     Route::post('newsletter/send', [SubscriberController::class, 'sendNewsletter'])->name('newsletter.send');
+    Route::post('newsletter/test', [SubscriberController::class, 'sendTestNewsletter'])->name('newsletter.test');
 
     // Blogs
     Route::resource('blogs', BlogController::class);

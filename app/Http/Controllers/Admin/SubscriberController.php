@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Subscriber;
 use App\Mail\NewsletterEmail;
+use App\Models\Subscriber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -122,35 +122,103 @@ class SubscriberController extends Controller
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
             'body' => 'required|string',
-            'recipient_type' => 'required|in:active,all',
+            'recipient_type' => 'required|in:active,all,test',
+            'test_emails' => 'nullable|string',
         ]);
 
-        // Get recipients based on type
-        if ($validated['recipient_type'] === 'active') {
-            $subscribers = Subscriber::where('status', 'active')->get();
-        } else {
-            $subscribers = Subscriber::where('status', '!=', 'bounced')->get();
+        if ($validated['recipient_type'] === 'test') {
+            $emails = collect(preg_split('/[\s,]+/', (string) ($validated['test_emails'] ?? '')))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (empty($emails)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['test_emails' => 'Please enter at least one valid email address.']);
+            }
+
+            $invalidEmails = collect($emails)
+                ->filter(fn (string $email) => ! filter_var($email, FILTER_VALIDATE_EMAIL));
+
+            if ($invalidEmails->isNotEmpty()) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['test_emails' => 'Please enter valid email address(es).']);
+            }
+
+            $this->queueNewsletterEmails(
+                array_map(fn ($email) => [
+                    'email' => $email,
+                    'name' => 'Test Recipient',
+                ], $emails),
+                $validated['subject'],
+                $validated['body'],
+                false
+            );
+
+            return back()
+                ->withInput([
+                    'subject' => $validated['subject'],
+                    'body' => $validated['body'],
+                    'recipient_type' => 'test',
+                    'test_emails' => implode(', ', $emails),
+                ])
+                ->with('success', 'Test email sent successfully to ' . count($emails) . ' recipient(s).');
         }
+
+        $subscribers = $this->getRecipientsByType($validated['recipient_type']);
 
         if ($subscribers->isEmpty()) {
             return redirect()->back()
                 ->with('error', 'No subscribers found to send email to.');
         }
 
-        // Use logged-in admin user's name as author name
-        $authorName = auth('admin')->user()->name ?? auth()->user()->name ?? config('mail.from.name', 'TechNews Team');
-        foreach ($subscribers as $subscriber) {
-            Mail::to($subscriber->email)->queue(
-                new NewsletterEmail(
-                    $validated['subject'],
-                    $validated['body'],
-                    $subscriber->name ?? 'Subscriber',
-                    $authorName
-                )
-            );
-        }
+        $this->queueNewsletterEmails(
+            $subscribers->map(fn ($subscriber) => [
+                'email' => $subscriber->email,
+                'name' => $subscriber->name ?? 'Subscriber',
+            ])->all(),
+            $validated['subject'],
+            $validated['body']
+        );
 
-        return redirect()->route('admin.subscribers.index')
-            ->with('success', 'Newsletter queued for sending to ' . $subscribers->count() . ' subscriber(s).');
+        return redirect()->route('admin.newsletter.compose')
+            ->with('success', 'Email sent successfully to ' . $subscribers->count() . ' subscriber(s).');
+    }
+
+    public function sendTestNewsletter(Request $request)
+    {
+        $request->merge(['recipient_type' => 'test']);
+
+        return $this->sendNewsletter($request);
+    }
+
+    private function getRecipientsByType(string $recipientType)
+    {
+        return $recipientType === 'active'
+            ? Subscriber::where('status', 'active')->get()
+            : Subscriber::where('status', '!=', 'bounced')->get();
+    }
+
+    private function queueNewsletterEmails(array $recipients, string $subject, string $body, bool $queue = true): void
+    {
+        $authorName = auth('admin')->user()->name ?? auth()->user()->name ?? config('mail.from.name', 'TechNews Team');
+
+        foreach ($recipients as $recipient) {
+            $mailable = new NewsletterEmail(
+                $subject,
+                $body,
+                $recipient['name'] ?? 'Subscriber',
+                $authorName
+            );
+
+            if ($queue) {
+                Mail::to($recipient['email'])->queue($mailable);
+            } else {
+                Mail::to($recipient['email'])->send($mailable);
+            }
+        }
     }
 }
